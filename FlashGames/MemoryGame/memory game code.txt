@@ -1,0 +1,103 @@
+import flash.utils.Timer;
+import flash.events.TimerEvent;
+
+const CARD_COLS: uint = 4;
+const CARD_ROWS: uint = 4;
+const CARD_WIDTH: uint = 100;
+const CARD_HEIGHT: uint = 100;
+const CARD_SPACING: uint = 10;
+const CARD_PAIRS: uint = (CARD_COLS * CARD_ROWS) / 2;
+
+const OFFSET_X:Number = (stage.stageWidth - ((CARD_WIDTH + CARD_SPACING) * CARD_COLS - CARD_SPACING)) / 2;
+const OFFSET_Y:Number = (stage.stageHeight - ((CARD_HEIGHT + CARD_SPACING) * CARD_ROWS - CARD_SPACING)) / 2;
+
+const REVERSE_SIDE:uint = CARD_PAIRS + 1;
+
+var cardDeck:Array;
+var cardsLeft:uint;
+var firstPick:Cards;
+var secondPick:Cards;
+var pause:Timer;
+
+initialiseGame();
+
+function initialiseGame() {
+	buildCardDeck();
+	randomiseCards();
+}
+
+function buildCardDeck():void {
+	cardDeck = new Array();
+	for (var i:uint = 1; i <= CARD_PAIRS; i++) {
+		cardDeck.push(i);
+		cardDeck.push(i)
+	}
+}
+
+function randomiseCards():void {
+	for (var x:uint = 0; x < CARD_COLS; x++) {
+		for (var y:uint = 0; y < CARD_ROWS; y++) {
+			var card:Cards = new Cards();
+			var randomCard = Math.floor(Math.random() * cardDeck.length);
+			
+			card.type = cardDeck[randomCard];
+			cardDeck.splice(randomCard, 1);
+			card.gotoAndStop(REVERSE_SIDE);
+			
+			card.x = x * (CARD_WIDTH + CARD_SPACING) + OFFSET_X;
+			card.y = y * (CARD_HEIGHT + CARD_SPACING) + OFFSET_Y;
+		
+			addChild(card);
+			card.addEventListener(MouseEvent.CLICK, chooseCard);
+			
+			//add card to cardsLeft variable
+			cardsLeft +=1;
+		}
+	}
+}
+
+function chooseCard(evt:MouseEvent) {
+	var card:Cards = Cards(evt.target);
+	
+	if (firstPick == null) {
+		firstPick = card;
+		firstPick.gotoAndStop(card.type);
+	} else if (secondPick == null && firstPick != card) {
+		secondPick = card;
+		secondPick.gotoAndStop(card.type)
+		
+		if (firstPick.type == secondPick.type) {
+			pause = new Timer(1000, 1);
+			pause.addEventListener(TimerEvent.TIMER_COMPLETE, removeCards);
+			pause.start();
+		} else {
+			pause = new Timer(1000, 1);
+			pause.addEventListener(TimerEvent.TIMER_COMPLETE, reverseCards);
+			pause.start();
+		}
+	}
+}
+
+function removeCards(evt:TimerEvent) {
+	removeChild (firstPick);
+	removeChild (secondPick);
+	firstPick = null;
+	secondPick = null;
+	
+	pause.removeEventListener(TimerEvent.TIMER_COMPLETE, removeCards);
+	cardsLeft -=2;
+	
+	if (cardsLeft == 0) {
+		gotoAndStop("gameOver");
+	}
+}
+
+function reverseCards(evt:TimerEvent) {
+	firstPick.gotoAndStop(REVERSE_SIDE);
+	secondPick.gotoAndStop(REVERSE_SIDE);
+	
+	firstPick = null;
+	secondPick = null;
+	
+	pause.removeEventListener(TimerEvent.TIMER_COMPLETE, reverseCards);
+}
